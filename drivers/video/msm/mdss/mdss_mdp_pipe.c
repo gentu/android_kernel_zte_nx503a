@@ -55,7 +55,7 @@ static inline u32 mdss_mdp_pipe_read(struct mdss_mdp_pipe *pipe, u32 reg)
 }
 
 static u32 mdss_mdp_smp_mmb_reserve(struct mdss_mdp_pipe_smp_map *smp_map,
-	size_t n)
+	size_t n, bool force_alloc)
 {
 	u32 i, mmb;
 	u32 fixed_cnt = bitmap_weight(smp_map->fixed, SMP_MB_CNT);
@@ -73,7 +73,7 @@ static u32 mdss_mdp_smp_mmb_reserve(struct mdss_mdp_pipe_smp_map *smp_map,
 	 * that calls for change in smp configuration (addition/removal
 	 * of smp blocks), so that fallback solution happens.
 	 */
-	if (i != 0 && n != i) {
+	if (i != 0 && n != i && !force_alloc) {
 		pr_debug("Can't change mmb config, num_blks: %d alloc: %d\n",
 			n, i);
 		return 0;
@@ -203,6 +203,8 @@ void mdss_mdp_smp_unreserve(struct mdss_mdp_pipe *pipe)
 {
 	int i;
 
+	force_alloc = pipe->flags & MDP_SMP_FORCE_ALLOC;
+
 	mutex_lock(&mdss_mdp_smp_lock);
 	for (i = 0; i < MAX_PLANES; i++)
 		mdss_mdp_smp_mmb_free(pipe->smp_map[i].reserved, false);
@@ -217,6 +219,7 @@ int mdss_mdp_smp_reserve(struct mdss_mdp_pipe *pipe)
 	int i;
 	int rc = 0, rot_mode = 0, wb_mixer = 0;
 	u32 nlines, format, seg_w;
+	bool force_alloc = 0;
 	u16 width;
 
 	width = pipe->src.w >> pipe->horz_deci;
@@ -331,7 +334,7 @@ int mdss_mdp_smp_reserve(struct mdss_mdp_pipe *pipe)
 		pr_debug("reserving %d mmb for pnum=%d plane=%d\n",
 				num_blks, pipe->num, i);
 		reserved = mdss_mdp_smp_mmb_reserve(&pipe->smp_map[i],
-			num_blks);
+			num_blks, force_alloc);
 		if (reserved < num_blks)
 			break;
 	}
