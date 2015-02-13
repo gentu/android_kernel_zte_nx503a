@@ -203,8 +203,6 @@ void mdss_mdp_smp_unreserve(struct mdss_mdp_pipe *pipe)
 {
 	int i;
 
-	force_alloc = pipe->flags & MDP_SMP_FORCE_ALLOC;
-
 	mutex_lock(&mdss_mdp_smp_lock);
 	for (i = 0; i < MAX_PLANES; i++)
 		mdss_mdp_smp_mmb_free(pipe->smp_map[i].reserved, false);
@@ -304,6 +302,8 @@ int mdss_mdp_smp_reserve(struct mdss_mdp_pipe *pipe)
 
 	if (pipe->mixer->type == MDSS_MDP_MIXER_TYPE_WRITEBACK)
 		wb_mixer = 1;
+
+	force_alloc = pipe->flags & MDP_SMP_FORCE_ALLOC;
 
 	mutex_lock(&mdss_mdp_smp_lock);
 	for (i = (MAX_PLANES - 1); i >= ps.num_planes; i--) {
